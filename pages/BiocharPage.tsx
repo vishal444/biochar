@@ -1,21 +1,20 @@
 import type { CSSProperties } from 'react';
+import { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+import type { LatLngExpression } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 export default function BiocharPage() {
   const styles: { [key: string]: CSSProperties } = {
-    // Full-width container with gradient background
     container: {
-  width: '100%',
-  minHeight: '100vh',
-  background: 'linear-gradient(to bottom, #d0f0c0, #e0f5d9, #d0f0c0)',
-  boxSizing: 'border-box',
-  padding: '40px 20px', // padding on left/right ensures no overflow
-},
-    // Wrapper to center content and constrain width
-    contentWrapper: {
-      maxWidth: 1200,
-      margin: '0 auto',
-      padding: '0 20px',
+      width: '100%',
+      minHeight: '100vh',
+      background: 'linear-gradient(to bottom, #d0f0c0, #e0f5d9, #d0f0c0)',
+      boxSizing: 'border-box',
+      padding: '40px 20px',
     },
+    contentWrapper: { maxWidth: 1200, margin: '0 auto', padding: '0 20px' },
     section: { marginBottom: 40, textAlign: 'center' },
     cardSection: {
       display: 'grid',
@@ -29,6 +28,9 @@ export default function BiocharPage() {
       borderRadius: 16,
       padding: 24,
       boxSizing: 'border-box',
+      height: 400,
+      display: 'flex',
+      flexDirection: 'column',
     },
     h1: { fontSize: 48, fontWeight: 800, color: '#047857', marginBottom: 16 },
     h2: { fontSize: 32, fontWeight: 600, color: '#047857', marginBottom: 12 },
@@ -36,6 +38,58 @@ export default function BiocharPage() {
     p: { fontSize: 16, color: '#374151' },
     ul: { listStyleType: 'disc', paddingLeft: 20, textAlign: 'left', color: '#374151' },
   };
+
+  // Frankfurt → Düsseldorf coordinates
+  const frankfurt = { lat: 50.1109, lng: 8.6821 };
+  const düsseldorf = { lat: 51.2277, lng: 6.7735 };
+
+  // Map center roughly in between the two cities
+  const center: LatLngExpression = [
+    (frankfurt.lat + düsseldorf.lat) / 2,
+    (frankfurt.lng + düsseldorf.lng) / 2,
+  ];
+
+  // Car state
+  const [car, setCar] = useState<{ lat: number; lng: number }>(frankfurt);
+  const [movingToTarget, setMovingToTarget] = useState(true); // true = moving to Düsseldorf
+
+  // DivIcon with car emoji
+  const carEmojiIcon = new L.DivIcon({
+    html: '🚗',
+    className: '',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+
+  // Animate car back and forth
+  useEffect(() => {
+    const speed = 0.002; // adjust for smooth movement
+    let animation: number;
+
+    const animate = () => {
+      const destination = movingToTarget ? düsseldorf : frankfurt;
+      const latDiff = destination.lat - car.lat;
+      const lngDiff = destination.lng - car.lng;
+
+      // Check if reached destination
+      if (Math.abs(latDiff) < 0.0001 && Math.abs(lngDiff) < 0.0001) {
+        setMovingToTarget(!movingToTarget); // swap direction
+        animation = requestAnimationFrame(animate); // continue animation
+        return;
+      }
+
+      setCar(prev => ({
+        lat: prev.lat + latDiff * speed,
+        lng: prev.lng + lngDiff * speed,
+      }));
+
+      animation = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => cancelAnimationFrame(animation);
+  }, [car, movingToTarget]);
 
   return (
     <div style={styles.container}>
@@ -46,6 +100,21 @@ export default function BiocharPage() {
           <p style={styles.p}>
             Biochar is a sustainable, carbon-rich material improving soil health, increasing crop yields, and helping reduce climate impact.
           </p>
+        </section>
+
+        {/* Map Card Section */}
+        <section style={styles.cardSection}>
+          <div style={styles.card}>
+            <h2 style={styles.h2}>Live Car Map: Frankfurt ↔ Düsseldorf</h2>
+            <MapContainer
+              center={center}
+              zoom={7} // zoomed out to see both cities
+              style={{ flex: 1, width: '100%', borderRadius: 12 }}
+            >
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker position={[car.lat, car.lng] as LatLngExpression} icon={carEmojiIcon} />
+            </MapContainer>
+          </div>
         </section>
 
         {/* Info Cards */}
