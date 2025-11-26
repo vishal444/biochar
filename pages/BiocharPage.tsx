@@ -14,7 +14,11 @@ export default function BiocharPage() {
       boxSizing: 'border-box',
       padding: '40px 20px',
     },
-    contentWrapper: { maxWidth: 1200, margin: '0 auto', padding: '0 20px' },
+    contentWrapper: {
+      maxWidth: 1200,
+      margin: '0 auto',
+      padding: '0 20px',
+    },
     section: { marginBottom: 40, textAlign: 'center' },
     cardSection: {
       display: 'grid',
@@ -28,7 +32,14 @@ export default function BiocharPage() {
       borderRadius: 16,
       padding: 24,
       boxSizing: 'border-box',
-      height: 400,
+    },
+    mapCard: {
+      background: '#fff',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderRadius: 16,
+      padding: 24,
+      boxSizing: 'border-box',
+      height: 500,
       display: 'flex',
       flexDirection: 'column',
     },
@@ -39,21 +50,39 @@ export default function BiocharPage() {
     ul: { listStyleType: 'disc', paddingLeft: 20, textAlign: 'left', color: '#374151' },
   };
 
-  // Frankfurt → Düsseldorf coordinates
-  const frankfurt = { lat: 50.1109, lng: 8.6821 };
-  const düsseldorf = { lat: 51.2277, lng: 6.7735 };
+  // Hub markers
+  const hubs = {
+    frankfurt: { lat: 50.1109, lng: 8.6821 },
+    düsseldorf: { lat: 51.2277, lng: 6.7735 },
+    bremen: { lat: 53.0793, lng: 8.8017 },
+  };
 
-  // Map center roughly in between the two cities
-  const center: LatLngExpression = [
-    (frankfurt.lat + düsseldorf.lat) / 2,
-    (frankfurt.lng + düsseldorf.lng) / 2,
+  // Define car routes
+  const routes = [
+    { id: 'car1', start: { lat: 50.0, lng: 8.2711 }, end: hubs.frankfurt },
+    { id: 'car2', start: hubs.frankfurt, end: { lat: 49.8728, lng: 8.6512 } },
+    { id: 'car3', start: { lat: 51.4508, lng: 7.0123 }, end: hubs.düsseldorf },
+    { id: 'car4', start: hubs.düsseldorf, end: { lat: 50.9375, lng: 6.9603 } },
+    { id: 'car5', start: { lat: 53.0225, lng: 8.9878 }, end: hubs.bremen },
+    { id: 'car6', start: hubs.bremen, end: { lat: 53.0462, lng: 8.4476 } },
   ];
 
-  // Car state
-  const [car, setCar] = useState<{ lat: number; lng: number }>(frankfurt);
-  const [movingToTarget, setMovingToTarget] = useState(true); // true = moving to Düsseldorf
+  type Car = {
+    id: string;
+    position: { lat: number; lng: number };
+    start: { lat: number; lng: number };
+    end: { lat: number; lng: number };
+  };
 
-  // DivIcon with car emoji
+  const [cars, setCars] = useState<Car[]>(
+    routes.map(route => ({
+      id: route.id,
+      position: route.start,
+      start: route.start,
+      end: route.end,
+    }))
+  );
+
   const carEmojiIcon = new L.DivIcon({
     html: '🚗',
     className: '',
@@ -61,35 +90,41 @@ export default function BiocharPage() {
     iconAnchor: [15, 15],
   });
 
-  // Animate car back and forth
   useEffect(() => {
-    const speed = 0.002; // adjust for smooth movement
+    const step = 0.0005;
     let animation: number;
 
     const animate = () => {
-      const destination = movingToTarget ? düsseldorf : frankfurt;
-      const latDiff = destination.lat - car.lat;
-      const lngDiff = destination.lng - car.lng;
+      setCars(prevCars =>
+        prevCars.map(car => {
+          const { lat, lng } = car.position;
+          const { lat: dLat, lng: dLng } = car.end;
+          const latDiff = dLat - lat;
+          const lngDiff = dLng - lng;
+          const distance = Math.sqrt(latDiff ** 2 + lngDiff ** 2);
 
-      // Check if reached destination
-      if (Math.abs(latDiff) < 0.0001 && Math.abs(lngDiff) < 0.0001) {
-        setMovingToTarget(!movingToTarget); // swap direction
-        animation = requestAnimationFrame(animate); // continue animation
-        return;
-      }
+          if (distance < step) {
+            return { ...car, position: car.end, start: car.end, end: car.start };
+          }
 
-      setCar(prev => ({
-        lat: prev.lat + latDiff * speed,
-        lng: prev.lng + lngDiff * speed,
-      }));
+          return {
+            ...car,
+            position: {
+              lat: lat + (latDiff / distance) * step,
+              lng: lng + (lngDiff / distance) * step,
+            },
+          };
+        })
+      );
 
       animation = requestAnimationFrame(animate);
     };
 
     animate();
-
     return () => cancelAnimationFrame(animation);
-  }, [car, movingToTarget]);
+  }, []);
+
+  const center: LatLngExpression = [51.2, 7.5];
 
   return (
     <div style={styles.container}>
@@ -102,20 +137,6 @@ export default function BiocharPage() {
           </p>
         </section>
 
-        {/* Map Card Section */}
-        <section style={styles.cardSection}>
-          <div style={styles.card}>
-            <h2 style={styles.h2}>Live Car Map: Frankfurt ↔ Düsseldorf</h2>
-            <MapContainer
-              center={center}
-              zoom={7} // zoomed out to see both cities
-              style={{ flex: 1, width: '100%', borderRadius: 12 }}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker position={[car.lat, car.lng] as LatLngExpression} icon={carEmojiIcon} />
-            </MapContainer>
-          </div>
-        </section>
 
         {/* Info Cards */}
         <section style={styles.cardSection}>
@@ -134,6 +155,30 @@ export default function BiocharPage() {
               <li>Carbon-rich char formation</li>
               <li>Cooling and activation</li>
             </ul>
+          </div>
+        </section>
+        {/* Distribution Map */}
+        <section style={styles.cardSection}>
+          <div style={styles.mapCard}>
+            <h2 style={styles.h2}>Live Distribution Network</h2>
+            <p style={styles.p}>Track our biochar delivery vehicles across Germany</p>
+            <MapContainer
+              center={center}
+              zoom={6}
+              style={{ flex: 1, width: '100%', borderRadius: 12, marginTop: 16 }}
+            >
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker position={hubs.frankfurt as LatLngExpression} />
+              <Marker position={hubs.düsseldorf as LatLngExpression} />
+              <Marker position={hubs.bremen as LatLngExpression} />
+              {cars.map(car => (
+                <Marker
+                  key={car.id}
+                  position={[car.position.lat, car.position.lng] as LatLngExpression}
+                  icon={carEmojiIcon}
+                />
+              ))}
+            </MapContainer>
           </div>
         </section>
 
