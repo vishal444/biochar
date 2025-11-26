@@ -83,11 +83,19 @@ export default function BiocharPage() {
     }))
   );
 
+  // Custom icons using emojis (work without image files)
   const carEmojiIcon = new L.DivIcon({
-    html: '🚗',
+    html: '<div style="font-size: 24px;">🚚</div>',
     className: '',
     iconSize: [30, 30],
     iconAnchor: [15, 15],
+  });
+
+  const hubIcon = new L.DivIcon({
+    html: '<div style="font-size: 28px;">🏭</div>',
+    className: '',
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
   });
 
   useEffect(() => {
@@ -157,6 +165,7 @@ export default function BiocharPage() {
             </ul>
           </div>
         </section>
+
         {/* Distribution Map */}
         <section style={styles.cardSection}>
           <div style={styles.mapCard}>
@@ -168,9 +177,10 @@ export default function BiocharPage() {
               style={{ flex: 1, width: '100%', borderRadius: 12, marginTop: 16 }}
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker position={hubs.frankfurt as LatLngExpression} />
-              <Marker position={hubs.düsseldorf as LatLngExpression} />
-              <Marker position={hubs.bremen as LatLngExpression} />
+              {/* Hub markers with custom icon */}
+              <Marker position={hubs.frankfurt as LatLngExpression} icon={hubIcon} />
+              <Marker position={hubs.düsseldorf as LatLngExpression} icon={hubIcon} />
+              <Marker position={hubs.bremen as LatLngExpression} icon={hubIcon} />
               {cars.map(car => (
                 <Marker
                   key={car.id}
