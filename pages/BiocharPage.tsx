@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react';
-import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import type { LatLngExpression } from 'leaflet';
@@ -8,247 +7,141 @@ import 'leaflet/dist/leaflet.css';
 export default function BiocharPage() {
   const styles: { [key: string]: CSSProperties } = {
     container: {
-      width: '100%',
-      minHeight: '100vh',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
       background: 'linear-gradient(to bottom, #d0f0c0, #e0f5d9, #d0f0c0)',
-      boxSizing: 'border-box',
-      padding: '40px 20px',
-    },
-    contentWrapper: {
-      maxWidth: 1200,
-      margin: '0 auto',
-      padding: '0 20px',
-    },
-    section: { marginBottom: 40, textAlign: 'center' },
-    cardSection: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: 32,
-      marginBottom: 40,
-    },
-    card: {
-      background: '#fff',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-      borderRadius: 16,
-      padding: 24,
+      padding: 20,
       boxSizing: 'border-box',
     },
     mapCard: {
+      width: '100%',
+      height: '100%',
       background: '#fff',
       boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
       borderRadius: 16,
       padding: 24,
       boxSizing: 'border-box',
-      height: 500,
       display: 'flex',
       flexDirection: 'column',
     },
-    h1: { fontSize: 48, fontWeight: 800, color: '#047857', marginBottom: 16 },
-    h2: { fontSize: 32, fontWeight: 600, color: '#047857', marginBottom: 12 },
-    h3: { fontSize: 24, fontWeight: 500, color: '#065f46', marginBottom: 8 },
-    p: { fontSize: 16, color: '#374151' },
-    ul: { listStyleType: 'disc', paddingLeft: 20, textAlign: 'left', color: '#374151' },
+    header: {
+      marginBottom: 16,
+    },
+    h2: { fontSize: 32, fontWeight: 600, color: '#047857', marginBottom: 8, margin: 0 },
+    p: { fontSize: 16, color: '#374151', margin: 0 },
+    mapWrapper: {
+      flex: 1,
+      width: '100%',
+      minHeight: 0,
+    }
   };
 
-  // Hub markers
-  const hubs = {
-    frankfurt: { lat: 50.1109, lng: 8.6821 },
-    düsseldorf: { lat: 51.2277, lng: 6.7735 },
-    bremen: { lat: 53.0793, lng: 8.8017 },
-  };
-
-  // Define car routes
-  const routes = [
-    { id: 'car1', start: { lat: 50.0, lng: 8.2711 }, end: hubs.frankfurt },
-    { id: 'car2', start: hubs.frankfurt, end: { lat: 49.8728, lng: 8.6512 } },
-    { id: 'car3', start: { lat: 51.4508, lng: 7.0123 }, end: hubs.düsseldorf },
-    { id: 'car4', start: hubs.düsseldorf, end: { lat: 50.9375, lng: 6.9603 } },
-    { id: 'car5', start: { lat: 53.0225, lng: 8.9878 }, end: hubs.bremen },
-    { id: 'car6', start: hubs.bremen, end: { lat: 53.0462, lng: 8.4476 } },
+  // --- Existing facility locations ---
+  const facilities = [
+    { id: 1, name: 'ASG Wertstoffhof Wesel', lat: 51.6583, lng: 6.6289 },
+    { id: 2, name: 'AEZ Asdonkshof', lat: 51.5056, lng: 6.5389 },
+    { id: 3, name: 'ASG Wertstoffhof Wesel', lat: 51.6583, lng: 6.6289 },
+    { id: 4, name: 'AEZ Asdonkshof', lat: 51.5056, lng: 6.5389 },
+    { id: 5, name: 'Kläranlage Emschermündung', lat: 51.53755, lng: 6.77992 },
+    { id: 6, name: 'Kläranlage Wesel', lat: 51.6458, lng: 6.6233 },
+    { id: 7, name: 'Kläranlage Moers', lat: 51.4678, lng: 6.6556 },
+    { id: 8, name: 'Kläranlage Xanten', lat: 51.6622, lng: 6.4525 },
+    { id: 9, name: 'Kläranlage Schermbeck', lat: 51.6833, lng: 6.8667 },
   ];
 
-  type Car = {
-    id: string;
-    position: { lat: number; lng: number };
-    start: { lat: number; lng: number };
-    end: { lat: number; lng: number };
-  };
+  // --- Plant locations ---
+  const plants = [
+    { id: 'p1', name: 'Plant Moers', lat: 51.4678, lng: 6.65 },
+    { id: 'p2', name: 'Plant Rheinberg', lat: 51.546, lng: 6.595 },
+    { id: 'p3', name: 'Plant Wesel', lat: 51.66, lng: 6.62 },
+  ];
 
-  const [cars, setCars] = useState<Car[]>(
-    routes.map(route => ({
-      id: route.id,
-      position: route.start,
-      start: route.start,
-      end: route.end,
-    }))
-  );
+  // --- Application endpoints ---
+  const endpoints = [
+    { id: 'e1', name: 'Endpoint Wesel – Molkereiweg 16', lat: 51.665, lng: 6.625 },
+    { id: 'e2', name: 'Endpoint Wesel–Obrighoven (Obrighovener Str. 129)', lat: 51.672, lng: 6.584 },
+    { id: 'e3', name: 'Endpoint Wesel–Obrighoven (Obrighovener Str. 121)', lat: 51.6725, lng: 6.583 },
+    { id: 'e4', name: 'Endpoint Wesel am Rhein (Am Lippeglacis 14-18)', lat: 51.676, lng: 6.628 },
+    { id: 'e5', name: 'Endpoint Wesel – Voßhöveler Str. 24', lat: 51.667, lng: 6.620 },
+    { id: 'e6', name: 'Endpoint Moers (Am Steinbrink 24, Schwafheim)', lat: 51.480, lng: 6.668 },
+    { id: 'e7', name: 'Endpoint Moers (Holderberger Str. 14)', lat: 51.481, lng: 6.680 },
+    { id: 'e8', name: 'Endpoint Moers–Hülsdonk (Am Schürmannshütt 30T)', lat: 51.485, lng: 6.700 },
+  ];
 
-  // Custom icons using emojis (work without image files)
-  const carEmojiIcon = new L.DivIcon({
-    html: '<div style="font-size: 24px;">🚚</div>',
-    className: '',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-  });
-
-  const hubIcon = new L.DivIcon({
-    html: '<div style="font-size: 28px;">🏭</div>',
+  // Icons
+  const facilityIcon = new L.DivIcon({
+    html: '<div style="font-size: 24px;">🏭</div>',
     className: '',
     iconSize: [30, 30],
     iconAnchor: [15, 30],
   });
 
-  useEffect(() => {
-    const step = 0.0005;
-    let animation: number;
+  const plantIcon = new L.DivIcon({
+    html: '<div style="font-size: 26px;">🌱</div>',
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+  });
 
-    const animate = () => {
-      setCars(prevCars =>
-        prevCars.map(car => {
-          const { lat, lng } = car.position;
-          const { lat: dLat, lng: dLng } = car.end;
-          const latDiff = dLat - lat;
-          const lngDiff = dLng - lng;
-          const distance = Math.sqrt(latDiff ** 2 + lngDiff ** 2);
+  const endpointIcon = new L.DivIcon({
+    html: '<div style="font-size: 26px;">📍</div>',
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+  });
 
-          if (distance < step) {
-            return { ...car, position: car.end, start: car.end, end: car.start };
-          }
-
-          return {
-            ...car,
-            position: {
-              lat: lat + (latDiff / distance) * step,
-              lng: lng + (lngDiff / distance) * step,
-            },
-          };
-        })
-      );
-
-      animation = requestAnimationFrame(animate);
-    };
-
-    animate();
-    return () => cancelAnimationFrame(animation);
-  }, []);
-
-  const center: LatLngExpression = [51.2, 7.5];
+  const center: LatLngExpression = [51.6, 6.65];
 
   return (
     <div style={styles.container}>
-      <div style={styles.contentWrapper}>
-        {/* Hero Section */}
-        <section style={styles.section}>
-          <h1 style={styles.h1}>Biochar: Transforming Soil & Climate</h1>
-          <p style={styles.p}>
-            Biochar is a sustainable, carbon-rich material improving soil health, increasing crop yields, and helping reduce climate impact.
-          </p>
-        </section>
+      <div style={styles.mapCard}>
+        <div style={styles.header}>
+          <h2 style={styles.h2}>Facilities, Plants & Application Endpoints</h2>
+          <p style={styles.p}>All locations plotted on the map</p>
+        </div>
 
+        <div style={styles.mapWrapper}>
+          <MapContainer
+            center={center}
+            zoom={10}
+            style={{ width: '100%', height: '100%', borderRadius: 12 }}
+          >
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {/* Info Cards */}
-        <section style={styles.cardSection}>
-          <div style={styles.card}>
-            <h2 style={styles.h2}>What Is Biochar?</h2>
-            <p style={styles.p}>
-              Biochar is produced through pyrolysis—heating organic material in low oxygen. Its porous structure and high surface area make it excellent for soil enhancement and long-term carbon storage.
-            </p>
-          </div>
-          <div style={styles.card}>
-            <h2 style={styles.h2}>How Biochar Is Made</h2>
-            <ul style={styles.ul}>
-              <li>Biomass feedstock preparation</li>
-              <li>Low-oxygen pyrolysis heating</li>
-              <li>Gas and vapor release</li>
-              <li>Carbon-rich char formation</li>
-              <li>Cooling and activation</li>
-            </ul>
-          </div>
-        </section>
+            {/* Facility markers */}
+            {facilities.map(f => (
+              <Marker
+                key={f.id}
+                position={[f.lat, f.lng] as LatLngExpression}
+                icon={facilityIcon}
+              />
+            ))}
 
-        {/* Distribution Map */}
-        <section style={styles.cardSection}>
-          <div style={styles.mapCard}>
-            <h2 style={styles.h2}>Live Distribution Network</h2>
-            <p style={styles.p}>Track our biochar delivery vehicles across Germany</p>
-            <MapContainer
-              center={center}
-              zoom={6}
-              style={{ flex: 1, width: '100%', borderRadius: 12, marginTop: 16 }}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              {/* Hub markers with custom icon */}
-              <Marker position={hubs.frankfurt as LatLngExpression} icon={hubIcon} />
-              <Marker position={hubs.düsseldorf as LatLngExpression} icon={hubIcon} />
-              <Marker position={hubs.bremen as LatLngExpression} icon={hubIcon} />
-              {cars.map(car => (
-                <Marker
-                  key={car.id}
-                  position={[car.position.lat, car.position.lng] as LatLngExpression}
-                  icon={carEmojiIcon}
-                />
-              ))}
-            </MapContainer>
-          </div>
-        </section>
+            {/* Plant markers */}
+            {plants.map(p => (
+              <Marker
+                key={p.id}
+                position={[p.lat, p.lng] as LatLngExpression}
+                icon={plantIcon}
+              />
+            ))}
 
-        {/* Benefits Section */}
-        <section style={styles.cardSection}>
-          <div style={styles.card}>
-            <h2 style={styles.h2}>Benefits of Biochar</h2>
-            <div>
-              <h3 style={styles.h3}>Agricultural</h3>
-              <ul style={styles.ul}>
-                <li>Improves fertility</li>
-                <li>Boosts water retention</li>
-                <li>Enhances nutrient uptake</li>
-                <li>Supports soil microbes</li>
-              </ul>
-              <h3 style={styles.h3}>Environmental</h3>
-              <ul style={styles.ul}>
-                <li>Long-term carbon sequestration</li>
-                <li>Reduces greenhouse gas emissions</li>
-                <li>Recycles organic waste</li>
-              </ul>
-              <h3 style={styles.h3}>Economic</h3>
-              <ul style={styles.ul}>
-                <li>Lower fertilizer costs</li>
-                <li>Higher crop yields</li>
-                <li>Supports green job growth</li>
-              </ul>
-            </div>
-          </div>
-        </section>
+            {/* Application Endpoints */}
+            {endpoints.map(ep => (
+              <Marker
+                key={ep.id}
+                position={[ep.lat, ep.lng] as LatLngExpression}
+                icon={endpointIcon}
+              />
+            ))}
 
-        {/* Applications & Usage */}
-        <section style={styles.cardSection}>
-          <div style={styles.card}>
-            <h2 style={styles.h2}>Applications of Biochar</h2>
-            <ul style={styles.ul}>
-              <li>Agriculture: Soil amendment, compost enhancer</li>
-              <li>Urban: Landscaping, green roofs</li>
-              <li>Industrial: Filtration, construction additives</li>
-              <li>Livestock: Bedding & odor reduction</li>
-            </ul>
-          </div>
-          <div style={styles.card}>
-            <h2 style={styles.h2}>How to Use Biochar</h2>
-            <ul style={styles.ul}>
-              <li><strong>Soil:</strong> Mix 5–10% with compost</li>
-              <li><strong>Gardens:</strong> 1 cup per sq. ft</li>
-              <li><strong>Compost:</strong> Add 10–15% for odor control & microbe activity</li>
-            </ul>
-          </div>
-        </section>
-
-        {/* Contact */}
-        <section style={styles.section}>
-          <div style={styles.card}>
-            <h2 style={styles.h2}>Contact Us</h2>
-            <p style={styles.p}>Have questions or need support regarding biochar products?</p>
-            <p style={{ ...styles.p, fontWeight: 500, color: '#065f46' }}>info@biochar.com</p>
-          </div>
-        </section>
+          </MapContainer>
+        </div>
       </div>
     </div>
   );
